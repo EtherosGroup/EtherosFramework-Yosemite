@@ -1,15 +1,17 @@
 plugins {
     id("java")
-    id("maven-publish")
+    id("signing")
+    id("com.vanniktech.maven.publish") version "0.36.0"
 }
 
-group = "com.skilfully.etheros"
-version = "1.0.0"
-description = "Etheros Framework - Yosemite (Java 17 / Minecraft 1.18–1.20.4)"
+group = "cn.skilfully"
+version = "1.0.1"
+description = "Etheros Framework - Yosemite (Java 17 / Minecraft 1.18\u20131.20.4)"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
+    withSourcesJar()
 }
 
 repositories {
@@ -33,10 +35,54 @@ tasks.test {
     useJUnitPlatform()
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("mavenJava") {
-            from(components["java"])
+tasks.withType<JavaCompile> {
+    options.encoding = "UTF-8"
+}
+
+tasks.withType<Javadoc> {
+    options.encoding = "UTF-8"
+    (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:none", "-quiet")
+}
+
+mavenPublishing {
+    publishToMavenCentral(true)
+    signAllPublications()
+
+    coordinates("cn.skilfully", "EtherosFramework-Yosemite", project.version.toString())
+
+    pom {
+        name = rootProject.name
+        description = project.description
+        url = "https://github.com/skilfully/EtherosFramework-Yosemite"
+
+        licenses {
+            license {
+                name = "Apache License 2.0"
+                url = "https://www.apache.org/licenses/LICENSE-2.0"
+            }
         }
+
+        developers {
+            developer {
+                id = "skilfully"
+                name = "Skilfully"
+            }
+        }
+
+        scm {
+            connection = "scm:git:https://github.com/skilfully/EtherosFramework-Yosemite.git"
+            developerConnection = "scm:git:https://github.com/skilfully/EtherosFramework-Yosemite.git"
+            url = "https://github.com/skilfully/EtherosFramework-Yosemite"
+        }
+    }
+}
+
+signing {
+    useGpgCmd()
+}
+
+afterEvaluate {
+    tasks.matching { it.name == "generateMetadataFileForMavenPublication" }.configureEach {
+        dependsOn(tasks.matching { it.name == "plainJavadocJar" })
     }
 }
