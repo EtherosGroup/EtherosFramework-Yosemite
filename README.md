@@ -25,16 +25,15 @@
 
 **Gradle**：
 ```kotlin
-repositories { mavenLocal() }
 dependencies {
-    implementation("com.skilfully.etheros:EtherosFramework-Yosemite:1.0.0")
+    implementation("cn.skilfully:EtherosFramework-Yosemite:1.0.0")
 }
 ```
 
 **Maven**：
 ```xml
 <dependency>
-    <groupId>com.skilfully.etheros</groupId>
+    <groupId>cn.skilfully</groupId>
     <artifactId>EtherosFramework-Yosemite</artifactId>
     <version>1.0.0</version>
 </dependency>
