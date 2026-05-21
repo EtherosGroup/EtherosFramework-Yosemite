@@ -80,7 +80,7 @@ ServerClassLoader
 ## 包结构
 
 ```
-com.skilfully.etheros.etherosframework
+cn.skilfully.etheros.etherosframework
 ├── di/
 │   ├── annotation/   — @Service, @GlobalService, @Autowired, @GlobalAutowired,
 │   │                    @Configuration, @Bean, @Value, @PostConstruct, @PreDestroy, @Prototype
