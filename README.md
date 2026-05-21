@@ -25,18 +25,17 @@
 
 **Gradle**：
 ```kotlin
-repositories { mavenLocal() }
 dependencies {
-    implementation("com.skilfully.etheros:EtherosFramework-Yosemite:1.0.0")
+    implementation("cn.skilfully.etheros:EtherosFramework-Yosemite:1.0.4")
 }
 ```
 
 **Maven**：
 ```xml
 <dependency>
-    <groupId>com.skilfully.etheros</groupId>
+    <groupId>cn.skilfully.etheros</groupId>
     <artifactId>EtherosFramework-Yosemite</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.4</version>
 </dependency>
 ```
 
@@ -118,12 +117,12 @@ Event event = new Event("player.join", Map.of("player", player));
 
 // 注册钩子
 hookManager.register("player.join", e -> {
-    Player p = (Player) e.getData().get("player");
+Player p = (Player) e.getData().get("player");
     p.sendMessage("Welcome!");
 }, Priority.HIGH);
 
 // 触发
-hookManager.callEvent("player.join", event);
+        hookManager.callEvent("player.join", event);
 
 // 取消传播
 event.setCancelled(true);
