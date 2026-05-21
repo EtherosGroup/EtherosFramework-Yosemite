@@ -26,16 +26,16 @@
 **Gradle**：
 ```kotlin
 dependencies {
-    implementation("cn.skilfully:EtherosFramework-Yosemite:1.0.0")
+    implementation("cn.skilfully.etheros:EtherosFramework-Yosemite:1.0.4")
 }
 ```
 
 **Maven**：
 ```xml
 <dependency>
-    <groupId>cn.skilfully</groupId>
+    <groupId>cn.skilfully.etheros</groupId>
     <artifactId>EtherosFramework-Yosemite</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.4</version>
 </dependency>
 ```
 
@@ -80,7 +80,7 @@ ServerClassLoader
 ## 包结构
 
 ```
-com.skilfully.etheros.etherosframework
+cn.skilfully.etheros.etherosframework
 ├── di/
 │   ├── annotation/   — @Service, @GlobalService, @Autowired, @GlobalAutowired,
 │   │                    @Configuration, @Bean, @Value, @PostConstruct, @PreDestroy, @Prototype
@@ -117,12 +117,12 @@ Event event = new Event("player.join", Map.of("player", player));
 
 // 注册钩子
 hookManager.register("player.join", e -> {
-    Player p = (Player) e.getData().get("player");
+Player p = (Player) e.getData().get("player");
     p.sendMessage("Welcome!");
 }, Priority.HIGH);
 
 // 触发
-hookManager.callEvent("player.join", event);
+        hookManager.callEvent("player.join", event);
 
 // 取消传播
 event.setCancelled(true);

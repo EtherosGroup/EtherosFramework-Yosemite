@@ -4,8 +4,8 @@ plugins {
     id("com.vanniktech.maven.publish") version "0.36.0"
 }
 
-group = "cn.skilfully"
-version = "1.0.1"
+group = "cn.skilfully.etheros"
+version = "1.0.4"
 description = "Etheros Framework - Yosemite (Java 17 / Minecraft 1.18\u20131.20.4)"
 
 java {
@@ -48,7 +48,7 @@ mavenPublishing {
     publishToMavenCentral(true)
     signAllPublications()
 
-    coordinates("cn.skilfully", "EtherosFramework-Yosemite", project.version.toString())
+    coordinates("cn.skilfully.etheros", "EtherosFramework-Yosemite", project.version.toString())
 
     pom {
         name = rootProject.name
