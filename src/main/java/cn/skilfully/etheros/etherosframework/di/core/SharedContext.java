@@ -3,27 +3,56 @@ package cn.skilfully.etheros.etherosframework.di.core;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public final class SharedContext {
 
+    private static final Logger LOG = Logger.getLogger("EtherosFramework-SharedContext");
+
     private static final Map<String, Object> beansByName = new ConcurrentHashMap<>();
-    private static final Map<Class<?>, List<Object>> beansByType = new ConcurrentHashMap<>();
+    private static final Map<String, List<Object>> beansByClassName = new ConcurrentHashMap<>();
 
     private SharedContext() {
     }
 
     public static synchronized void register(Class<?> type, Object bean) {
-        beansByName.put(type.getSimpleName(), bean);
-        beansByType.computeIfAbsent(type, k -> new CopyOnWriteArrayList<>()).add(bean);
+        String name = type.getSimpleName();
+        Object existing = beansByName.get(name);
+        if (existing != null && existing != bean) {
+            LOG.log(Level.WARNING,
+                    "Overwriting global bean name '{0}': {1} -> {2}",
+                    new Object[]{name, existing.getClass().getName(), bean.getClass().getName()});
+        }
+        beansByName.put(name, bean);
+        for (String className : collectHierarchyNames(type)) {
+            List<Object> list = beansByClassName.computeIfAbsent(className, k -> new CopyOnWriteArrayList<>());
+            if (!list.contains(bean)) {
+                list.add(bean);
+            }
+        }
     }
 
     public static synchronized void syncFrom(ApplicationContext context) {
         for (Map.Entry<String, Object> entry : context.getBeansByName().entrySet()) {
-            beansByName.put(entry.getKey(), entry.getValue());
+            String name = entry.getKey();
+            Object bean = entry.getValue();
+            Object existing = beansByName.get(name);
+            if (existing != null && existing != bean) {
+                LOG.log(Level.WARNING,
+                        "Overwriting global bean name '{0}': {1} -> {2}",
+                        new Object[]{name, existing.getClass().getName(), bean.getClass().getName()});
+            }
+            beansByName.put(name, bean);
         }
         for (Map.Entry<Class<?>, Object> entry : context.getBeansByType().entrySet()) {
-            beansByType.computeIfAbsent(entry.getKey(), k -> new CopyOnWriteArrayList<>())
-                    .add(entry.getValue());
+            Object bean = entry.getValue();
+            for (String className : collectHierarchyNames(entry.getKey())) {
+                List<Object> list = beansByClassName.computeIfAbsent(className, k -> new CopyOnWriteArrayList<>());
+                if (!list.contains(bean)) {
+                    list.add(bean);
+                }
+            }
         }
     }
 
@@ -33,45 +62,46 @@ public final class SharedContext {
 
     @SuppressWarnings("unchecked")
     public static <T> T getBean(Class<T> type) {
-        List<Object> list = beansByType.get(type);
+        List<Object> list = beansByClassName.get(type.getName());
         if (list != null && !list.isEmpty()) {
             return (T) list.get(0);
-        }
-        for (Map.Entry<Class<?>, List<Object>> entry : beansByType.entrySet()) {
-            if (type.isAssignableFrom(entry.getKey()) && !entry.getValue().isEmpty()) {
-                return (T) entry.getValue().get(0);
-            }
         }
         return null;
     }
 
     @SuppressWarnings("unchecked")
     public static <T> List<T> getBeans(Class<T> type) {
-        List<Object> list = beansByType.get(type);
+        List<Object> list = beansByClassName.get(type.getName());
         if (list != null) {
             return (List<T>) Collections.unmodifiableList(list);
         }
-        List<T> result = new ArrayList<>();
-        for (Map.Entry<Class<?>, List<Object>> entry : beansByType.entrySet()) {
-            if (type.isAssignableFrom(entry.getKey())) {
-                for (Object bean : entry.getValue()) {
-                    result.add((T) bean);
-                }
-            }
-        }
-        return result;
+        return Collections.emptyList();
     }
 
     public static boolean contains(Class<?> type) {
-        if (beansByType.containsKey(type) && !beansByType.get(type).isEmpty()) return true;
-        for (Map.Entry<Class<?>, List<Object>> entry : beansByType.entrySet()) {
-            if (type.isAssignableFrom(entry.getKey()) && !entry.getValue().isEmpty()) return true;
-        }
-        return false;
+        List<Object> list = beansByClassName.get(type.getName());
+        return list != null && !list.isEmpty();
     }
 
     public static void clear() {
         beansByName.clear();
-        beansByType.clear();
+        beansByClassName.clear();
+    }
+
+    private static Set<String> collectHierarchyNames(Class<?> type) {
+        Set<String> names = new LinkedHashSet<>();
+        collectHierarchyNames(type, names);
+        return names;
+    }
+
+    private static void collectHierarchyNames(Class<?> clazz, Set<String> names) {
+        if (clazz == null || clazz == Object.class) {
+            return;
+        }
+        names.add(clazz.getName());
+        for (Class<?> iface : clazz.getInterfaces()) {
+            collectHierarchyNames(iface, names);
+        }
+        collectHierarchyNames(clazz.getSuperclass(), names);
     }
 }

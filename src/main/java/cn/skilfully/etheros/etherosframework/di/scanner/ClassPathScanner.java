@@ -16,10 +16,10 @@ import java.util.jar.JarFile;
 public class ClassPathScanner {
 
     private static final Set<String> TARGET_DESCRIPTORS = Set.of(
-            "Lcom/skilfully/etheros/etherosframework/di/annotation/Service;",
-            "Lcom/skilfully/etheros/etherosframework/di/annotation/GlobalService;",
-            "Lcom/skilfully/etheros/etherosframework/di/annotation/Configuration;",
-            "Lcom/skilfully/etheros/etherosframework/di/annotation/Prototype;"
+            "Lcn/skilfully/etheros/etherosframework/di/annotation/Service;",
+            "Lcn/skilfully/etheros/etherosframework/di/annotation/GlobalService;",
+            "Lcn/skilfully/etheros/etherosframework/di/annotation/Configuration;",
+            "Lcn/skilfully/etheros/etherosframework/di/annotation/Prototype;"
     );
 
     private final ClassLoader classLoader;
