@@ -3,6 +3,7 @@ package cn.skilfully.etheros.etherosframework.di.core;
 import cn.skilfully.etheros.etherosframework.di.annotation.*;
 import cn.skilfully.etheros.etherosframework.di.exception.BeanCreationException;
 import cn.skilfully.etheros.etherosframework.di.exception.BeanNotFoundException;
+import cn.skilfully.etheros.etherosframework.di.exception.CircularDependencyException;
 import cn.skilfully.etheros.etherosframework.di.lifecycle.LifecycleProcessor;
 import cn.skilfully.etheros.etherosframework.di.scanner.ClassPathScanner;
 
@@ -10,15 +11,12 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class ApplicationContext {
 
-    private static final Logger LOG = Logger.getLogger("EtherosFramework-Context");
-
     private final BeanRegistry registry = new BeanRegistry();
     private final List<BeanDefinition> definitions = new ArrayList<>();
+    private final List<String> creationOrder = new ArrayList<>();
     private final LifecycleProcessor lifecycleProcessor = new LifecycleProcessor();
     private ClassLoader classLoader;
     private String basePackage;
@@ -77,6 +75,7 @@ public class ApplicationContext {
                 try {
                     Object instance = createInstance(def);
                     registry.register(def.getBeanName(), def.getBeanClass(), instance);
+                    creationOrder.add(def.getBeanName());
                 } catch (BeanNotFoundException e) {
                     remaining++;
                 } catch (Exception e) {
@@ -97,10 +96,36 @@ public class ApplicationContext {
                 unresolved.add(def.getBeanClass().getName());
             }
         }
-        if (!unresolved.isEmpty()) {
-            throw new BeanCreationException(
-                    "Unresolved dependencies for beans: " + String.join(", ", unresolved));
+        if (unresolved.isEmpty()) return;
+
+        boolean allDepsDefined = true;
+        for (BeanDefinition def : definitions) {
+            if (def.isPrototype()) continue;
+            if (registry.getByName(def.getBeanName()) != null) continue;
+            for (Class<?> paramType : def.getConstructor().getParameterTypes()) {
+                if (!isTypeDefined(paramType, definitions)) {
+                    allDepsDefined = false;
+                    break;
+                }
+            }
+            if (!allDepsDefined) break;
         }
+
+        if (allDepsDefined) {
+            throw new CircularDependencyException(
+                    "Circular dependency detected among beans: " + String.join(", ", unresolved));
+        }
+        throw new BeanCreationException(
+                "Unresolved dependencies for beans: " + String.join(", ", unresolved));
+    }
+
+    private boolean isTypeDefined(Class<?> type, List<BeanDefinition> definitions) {
+        for (BeanDefinition def : definitions) {
+            if (type.isAssignableFrom(def.getBeanClass())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Object createInstance(BeanDefinition def) throws Exception {
@@ -126,20 +151,21 @@ public class ApplicationContext {
     private Object resolveParameter(Class<?> type, java.lang.annotation.Annotation[] annotations,
                                     String contextName) {
         for (java.lang.annotation.Annotation ann : annotations) {
-            if (ann instanceof Value) {
-                String value = propertyLoader.getProperty(((Value) ann).value());
+            if (ann instanceof Value v) {
+                String value = propertyLoader.getProperty(v.value());
                 if (value == null) {
+                    if (!v.defaultValue().isEmpty()) {
+                        return convertValue(v.defaultValue(), type);
+                    }
                     throw new BeanCreationException(
-                            "Property not found: " + ((Value) ann).value() + " for " + contextName);
+                            "Property not found: " + v.value() + " for " + contextName);
                 }
                 return convertValue(value, type);
             }
-            if (ann instanceof GlobalAutowired) {
-                GlobalAutowired ga = (GlobalAutowired) ann;
+            if (ann instanceof GlobalAutowired ga) {
                 return resolveGlobalBean(ga.value(), type, ga.required(), "constructor param in " + contextName);
             }
-            if (ann instanceof Autowired) {
-                Autowired a = (Autowired) ann;
+            if (ann instanceof Autowired a) {
                 return resolveLocalBean(a.value(), type, a.required(), "constructor param in " + contextName);
             }
         }
@@ -173,6 +199,9 @@ public class ApplicationContext {
         if (valueAnn != null) {
             String raw = propertyLoader.getProperty(valueAnn.value());
             if (raw == null) {
+                if (!valueAnn.defaultValue().isEmpty()) {
+                    return convertValue(valueAnn.defaultValue(), field.getType());
+                }
                 throw new BeanCreationException(
                         "Property not found: " + valueAnn.value() + " for " + contextName + "." + field.getName());
             }
@@ -181,16 +210,13 @@ public class ApplicationContext {
 
         GlobalAutowired globalAnn = field.getAnnotation(GlobalAutowired.class);
         if (globalAnn != null) {
-            Object bean = resolveGlobalBean(globalAnn.value(), field.getType(), globalAnn.required(), field.getName());
-            return bean;
+            return resolveGlobalBean(globalAnn.value(), field.getType(), globalAnn.required(), field.getName());
         }
 
         Autowired autowireAnn = field.getAnnotation(Autowired.class);
         if (autowireAnn != null) {
-            Object bean = resolveLocalBean(autowireAnn.value(), field.getType(), autowireAnn.required(), field.getName());
-            return bean;
+            return resolveLocalBean(autowireAnn.value(), field.getType(), autowireAnn.required(), field.getName());
         }
-
         return null;
     }
 
@@ -258,9 +284,14 @@ public class ApplicationContext {
     }
 
     private void invokePostConstructs() {
+        Map<String, BeanDefinition> defMap = new HashMap<>();
         for (BeanDefinition def : definitions) {
-            if (def.isPrototype()) continue;
-            Object instance = registry.getByName(def.getBeanName());
+            defMap.put(def.getBeanName(), def);
+        }
+        for (String beanName : creationOrder) {
+            BeanDefinition def = defMap.get(beanName);
+            if (def == null || def.isPrototype()) continue;
+            Object instance = registry.getByName(beanName);
             if (instance == null) continue;
             lifecycleProcessor.invokePostConstruct(instance, def.getPostConstructMethods());
         }
@@ -320,11 +351,15 @@ public class ApplicationContext {
     }
 
     public void shutdown() {
-        List<BeanDefinition> reversed = new ArrayList<>(definitions);
-        Collections.reverse(reversed);
-        for (BeanDefinition def : reversed) {
-            if (def.isPrototype()) continue;
-            Object instance = registry.getByName(def.getBeanName());
+        Map<String, BeanDefinition> defMap = new HashMap<>();
+        for (BeanDefinition def : definitions) {
+            defMap.put(def.getBeanName(), def);
+        }
+        for (int i = creationOrder.size() - 1; i >= 0; i--) {
+            String beanName = creationOrder.get(i);
+            BeanDefinition def = defMap.get(beanName);
+            if (def == null || def.isPrototype()) continue;
+            Object instance = registry.getByName(beanName);
             if (instance == null) continue;
             lifecycleProcessor.invokePreDestroy(instance, def.getPreDestroyMethods());
         }
