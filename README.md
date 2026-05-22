@@ -5,38 +5,109 @@
 ## 适用范围
 
 - **Java 17**
-- **Minecraft 1.18 – 1.20.4**（Paper 及其下游）
+- **Minecraft 1.17 – 1.20.4**（Paper 及其下游）
 
 ## 核心能力
 
-| 模块 | 功能 |
-|------|------|
-| **DI 容器** | `@Service` / `@GlobalService` / `@Configuration` / `@Bean` 自动发现与实例化 |
-| **依赖注入** | `@Autowired` / `@GlobalAutowired` 字段、构造器、Setter 注入，支持按名称和按类型 |
+| 模块 | 功能                                                                      |
+|------|-------------------------------------------------------------------------|
+| **DI 容器** | `@Service` / `@GlobalService` / `@Configuration` / `@Bean` 自动发现与实例化     |
+| **依赖注入** | `@Autowired` / `@GlobalAutowired` 字段、构造器、Setter 注入，支持按名称和按类型            |
 | **跨插件共享** | `@GlobalService` 将 Bean 自动注册到 `SharedContext`，其他插件可通过 `@Autowired` 透明获取 |
-| **属性注入** | `@Value("key")` 从 `application.properties` 读取配置值 |
-| **生命周期** | `@PostConstruct` / `@PreDestroy` 回调 |
-| **钩子系统** | `HookManager` 接口 + `Event` 事件模型，支持优先级和取消传播 |
-| **ASM 扫描** | 基于 ASM 9.0 的字节码注解扫描，不触发类加载 |
+| **属性注入** | `@Value("key")` 从 `application.properties` 读取配置值                        |
+| **生命周期** | `@PostConstruct` / `@PreDestroy` 回调                                     |
+| **钩子系统** | `HookManager` 接口 + `Event` 事件模型，支持优先级和取消传播                              |
+| **ASM 扫描** | 基于 ASM 的字节码注解扫描，不触发类加载                                                   |
 
 ## 快速开始
 
-### 引用
+***如果你还不会构建产物（你的插件）请看这里[BUILD_ARTIFACT.md](help/BUILD_ARTIFACT.md)***\
+***如果构建出来的插件运行报错比如 `ClassNotFound` 请看完 [BUILD_ARTIFACT.md](help/BUILD_ARTIFACT.md)***
 
-**Gradle**：
-```kotlin
+### 选择依赖模式
+
+框架根据是否需要**跨插件 Bean 共享**分为两种依赖模式：
+
+---
+
+#### 模式 A：独立使用（不跨插件共享）
+
+每个用到框架的插件各自 shade 一份，互不干扰。
+
+**build.gradle**（每个插件都要这样配）：
+
+```groovy
+plugins {
+    id 'java'
+    id 'com.gradleup.shadow' version '8.3.6'
+}
+
 dependencies {
-    implementation("cn.skilfully.etheros:EtherosFramework-Yosemite:1.0.4")
+    implementation 'cn.skilfully.etheros:EtherosFramework-Yosemite:1.0.5'
 }
 ```
 
-**Maven**：
-```xml
-<dependency>
-    <groupId>cn.skilfully.etheros</groupId>
-    <artifactId>EtherosFramework-Yosemite</artifactId>
-    <version>1.0.4</version>
-</dependency>
+---
+
+#### 模式 B：跨插件共享 Bean（API 宿主 + 子插件）
+
+一个插件作为 API 宿主，提供 `@GlobalService` bean；其他子插件依赖宿主，共享同一份 `SharedContext`。
+
+**宿主插件 build.gradle**：
+
+```groovy
+plugins {
+    id 'java'
+    id 'com.gradleup.shadow' version '8.3.6'
+}
+
+dependencies {
+    implementation 'cn.skilfully.etheros:EtherosFramework-Yosemite:1.0.5'
+}
+```
+
+**宿主插件 plugin.yml**：
+
+```yaml
+name: ExampleCore
+main: com.example.core.ExampleCore
+version: 1.0.0
+api-version: 1.17
+```
+
+**子插件 build.gradle**：
+
+```groovy
+plugins {
+    id 'java'
+}
+
+dependencies {
+    compileOnly 'cn.skilfully.etheros:EtherosFramework-Yosemite:1.0.5'
+}
+```
+
+**子插件 plugin.yml**：
+
+```yaml
+name: ExampleAddon
+main: com.example.addon.ExampleAddon
+version: 1.0.0
+api-version: 1.17
+depend: [ExampleCore]
+```
+
+---
+
+#### 运行时类加载链（模式 B）
+
+```
+Minecraft Server (parent ClassLoader)
+ └─ ExampleCore PluginClassLoader
+      ├── SharedContext.class  (static 字段 — 全局唯一)
+      ├── lib.asm.*  (relocated ASM)
+      └─ ExampleAddon PluginClassLoader (depend: [ExampleCore])
+           └── @Autowired Foo foo → SharedContext.getBean(Foo.class) ✓
 ```
 
 ### 基本用法
@@ -60,22 +131,30 @@ public class MyPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         ApplicationContext.run(MyPlugin.class);
-        SharedContext.syncFrom(...); // 如需跨插件共享
     }
 }
 ```
 
-### 跨插件 DI（Paper ClassLoader 父子链）
+### 跨插件 DI
 
-```
-ServerClassLoader
- └─ PluginClassLoader[EtherosCore]
-      ├── SharedContext (static fields — 全局唯一)
-      └─ PluginClassLoader[Addon] (depend: [EtherosCore])
-           └── @Autowired Foo foo → SharedContext.getBean(Foo.class) ✓
+宿主插件中标注 `@GlobalService` 的 Bean 在容器启动后自动注册到 `SharedContext`，子插件通过 `@Autowired` 即可获取：
+
+```java
+// 宿主插件
+@GlobalService
+public class DbManager implements DatabaseManager {
+    public void connect() { /* ... */ }
+}
 ```
 
-标注 `@GlobalService` 的 Bean 在容器启动后自动注册到 `SharedContext`，依赖 EtherosCore 的子插件通过 `@Autowired` 即可类型安全获取。
+```java
+// 子插件 — 自动从 SharedContext 回退获取
+@Service
+public class UserModule {
+    @Autowired
+    private DatabaseManager db;   // 来自宿主插件
+}
+```
 
 ## 包结构
 
@@ -117,12 +196,12 @@ Event event = new Event("player.join", Map.of("player", player));
 
 // 注册钩子
 hookManager.register("player.join", e -> {
-Player p = (Player) e.getData().get("player");
+    Player p = (Player) e.getData().get("player");
     p.sendMessage("Welcome!");
 }, Priority.HIGH);
 
 // 触发
-        hookManager.callEvent("player.join", event);
+hookManager.callEvent("player.join", event);
 
 // 取消传播
 event.setCancelled(true);
@@ -131,4 +210,5 @@ event.setCancelled(true);
 `HookManager` 接口需由宿主插件实现并注册为 `@GlobalService`，子插件通过 `@Autowired` 获取同一实例。
 
 ## 联系
+
 QQ群：870666822
