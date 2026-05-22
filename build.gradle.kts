@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "cn.skilfully.etheros"
-version = "1.0.5"
+version = "1.0.6"
 description = "Etheros Framework - Yosemite (Java 17 / Minecraft 1.18\u20131.20.4)"
 
 java {
@@ -62,17 +62,10 @@ mavenPublishing {
             }
         }
 
-        developers {
-            developer {
-                id = "skilfully"
-                name = "Skilfully"
-            }
-        }
-
         scm {
-            connection = "scm:git:https://github.com/skilfully/EtherosFramework-Yosemite.git"
-            developerConnection = "scm:git:https://github.com/skilfully/EtherosFramework-Yosemite.git"
-            url = "https://github.com/skilfully/EtherosFramework-Yosemite"
+            connection = "scm:git:https://github.com/EtherosGroup/EtherosFramework-Yosemite.git"
+            developerConnection = "scm:git:https://github.com/EtherosGroup/EtherosFramework-Yosemite.git"
+            url = "https://github.com/EtherosGroup/EtherosFramework-Yosemite"
         }
     }
 }

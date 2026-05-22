@@ -43,7 +43,7 @@ plugins {
 }
 
 dependencies {
-    implementation 'cn.skilfully.etheros:EtherosFramework-Yosemite:1.0.5'
+    implementation 'cn.skilfully.etheros:EtherosFramework-Yosemite:1.0.6'
 }
 ```
 
@@ -62,7 +62,7 @@ plugins {
 }
 
 dependencies {
-    implementation 'cn.skilfully.etheros:EtherosFramework-Yosemite:1.0.5'
+    implementation 'cn.skilfully.etheros:EtherosFramework-Yosemite:1.0.6'
 }
 ```
 
@@ -208,6 +208,34 @@ event.setCancelled(true);
 ```
 
 `HookManager` 接口需由宿主插件实现并注册为 `@GlobalService`，子插件通过 `@Autowired` 获取同一实例。
+
+## 生命周期顺序
+
+### 启动
+
+```
+实例化（依赖优先） → 字段注入 → 工厂方法 → @PostConstruct → 注册到 SharedContext
+```
+
+`@PostConstruct` 按**实例化顺序**执行，即被依赖者先于依赖者：
+
+```
+A 依赖 B（B → A 创建顺序）
+B.@PostConstruct  →  A.@PostConstruct
+```
+
+### 关闭
+
+`context.shutdown()` 按**实例化逆序**销毁，即依赖者先于被依赖者：
+
+```
+A 依赖 B（B → A 创建顺序，逆序为 A → B）
+A.@PreDestroy  →  B.@PreDestroy
+```
+
+### 循环依赖
+
+存在 `A → B → A` 等循环依赖时，容器抛出 `CircularDependencyException`，插件启用失败。
 
 ## 联系
 
