@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "cn.skilfully.etheros"
-version = "1.0.4"
+version = "1.0.5"
 description = "Etheros Framework - Yosemite (Java 17 / Minecraft 1.18\u20131.20.4)"
 
 java {
@@ -23,7 +23,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
-    compileOnly("org.ow2.asm:asm:9.0")
+    implementation("org.ow2.asm:asm:9.3")
 
     compileOnly("org.projectlombok:lombok:1.18.36")
     annotationProcessor("org.projectlombok:lombok:1.18.36")
