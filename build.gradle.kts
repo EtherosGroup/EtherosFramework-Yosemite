@@ -62,6 +62,13 @@ mavenPublishing {
             }
         }
 
+        developers {
+            developer {
+                id = "Etheros Group"
+                name = "Etheros Group"
+            }
+        }
+
         scm {
             connection = "scm:git:https://github.com/EtherosGroup/EtherosFramework-Yosemite.git"
             developerConnection = "scm:git:https://github.com/EtherosGroup/EtherosFramework-Yosemite.git"
