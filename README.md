@@ -169,7 +169,7 @@ cn.skilfully.etheros.etherosframework
 │   └── exception/     — BeanCreationException, BeanNotFoundException, CircularDependencyException
 └── hook/
     ├── core/          — HookManager (interface)
-    ├── entity/        — Event, Priority
+    ├── entity/        — HookEvent, Priority
     └── exception/     — HookException
 ```
 
@@ -192,7 +192,10 @@ cn.skilfully.etheros.etherosframework
 
 ```java
 // 定义事件
-Event event = new Event("player.join", Map.of("player", player));
+HookEvent event = new HookEvent();
+event
+    .setEventType("player.join")
+    .setData(Map.of("player", player));
 
 // 注册钩子
 hookManager.register("player.join", e -> {
