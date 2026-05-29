@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "cn.skilfully.etheros"
-version = "1.0.7"
+version = "1.0.8"
 description = "Etheros Framework - Yosemite (Java 17 / Minecraft 1.18\u20131.20.4)"
 
 java {
