@@ -43,7 +43,7 @@ plugins {
 }
 
 dependencies {
-    implementation 'cn.skilfully.etheros:EtherosFramework-Yosemite:1.0.9'
+    implementation 'cn.skilfully.etheros:EtherosFramework-Yosemite:1.0.10'
 }
 ```
 
@@ -62,7 +62,7 @@ plugins {
 }
 
 dependencies {
-    implementation 'cn.skilfully.etheros:EtherosFramework-Yosemite:1.0.9'
+    implementation 'cn.skilfully.etheros:EtherosFramework-Yosemite:1.0.10'
 }
 ```
 
@@ -83,7 +83,7 @@ plugins {
 }
 
 dependencies {
-    compileOnly 'cn.skilfully.etheros:EtherosFramework-Yosemite:1.0.9'
+    compileOnly 'cn.skilfully.etheros:EtherosFramework-Yosemite:1.0.10'
 }
 ```
 
@@ -167,10 +167,11 @@ cn.skilfully.etheros.etherosframework
 │   ├── scanner/       — ClassPathScanner (ASM)
 │   ├── lifecycle/     — LifecycleProcessor
 │   └── exception/     — BeanCreationException, BeanNotFoundException, CircularDependencyException
-└── hook/
-    ├── core/          — HookManager (interface)
-    ├── entity/        — HookEvent, Priority
-    └── exception/     — HookException
+├── hook/
+│   ├── core/          — HookManager (interface)
+│   ├── entity/        — HookEvent, Priority
+│   └── exception/     — HookException
+└── utils/
 ```
 
 ## 注解速览
@@ -193,9 +194,7 @@ cn.skilfully.etheros.etherosframework
 ```java
 // 定义事件
 HookEvent event = new HookEvent();
-event
-    .setEventType("player.join")
-    .setData(Map.of("player", player));
+event.setData(Map.of("player", player));
 
 // 注册钩子
 hookManager.register("player.join", e -> {
