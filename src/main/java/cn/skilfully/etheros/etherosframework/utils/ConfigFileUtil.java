@@ -62,7 +62,7 @@ public class ConfigFileUtil {
             }
         }
 
-        try (InputStream in = clazz.getResourceAsStream(resourcePath);
+        try (InputStream in = clazz.getResourceAsStream("/" + resourcePath);
              OutputStream out = Files.newOutputStream(toFile.toPath())) {
 
             if (in == null) {
