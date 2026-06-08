@@ -58,10 +58,11 @@ public class ApplicationContext {
 
     void refresh() {
         instantiateSingletons();
-        injectFields();
+        injectConfigurationFields();
         invokeBeanFactories();
-        invokePostConstructs();
         registerGlobalBeans();
+        injectFields();
+        invokePostConstructs();
     }
 
     private void instantiateSingletons() {
@@ -247,17 +248,42 @@ public class ApplicationContext {
         Object bean;
         if (!name.isEmpty()) {
             bean = SharedContext.get(name);
+            if (bean == null) {
+                bean = registry.getByName(name);
+            }
             if (bean != null && !type.isInstance(bean)) {
                 throw new BeanCreationException(
                         "Global bean '" + name + "' is not of type " + type.getName() + " for field " + fieldName);
             }
         } else {
             bean = SharedContext.getBean(type);
+            if (bean == null) {
+                bean = registry.getByType(type);
+            }
         }
         if (bean == null && required) {
             throw new BeanNotFoundException(fieldName, type);
         }
         return bean;
+    }
+
+    private void injectConfigurationFields() {
+        for (BeanDefinition def : definitions) {
+            if (!def.isConfiguration()) continue;
+            if (def.isPrototype()) continue;
+            Object instance = registry.getByName(def.getBeanName());
+            if (instance == null) continue;
+            for (Field field : def.getInjectFields()) {
+                try {
+                    Object value = resolveFieldValue(field, def.getBeanClass().getName());
+                    field.set(instance, value);
+                } catch (Exception e) {
+                    throw new BeanCreationException(
+                            "Failed to inject " + field.getName() + " on "
+                                    + def.getBeanClass().getName(), e);
+                }
+            }
+        }
     }
 
     private void invokeBeanFactories() {
@@ -286,14 +312,92 @@ public class ApplicationContext {
     private void invokePostConstructs() {
         Map<String, BeanDefinition> defMap = new HashMap<>();
         for (BeanDefinition def : definitions) {
-            defMap.put(def.getBeanName(), def);
+            if (!def.isPrototype() && registry.getByName(def.getBeanName()) != null) {
+                defMap.put(def.getBeanName(), def);
+            }
         }
-        for (String beanName : creationOrder) {
+        if (defMap.isEmpty()) return;
+
+        Map<String, Set<String>> dependents = new HashMap<>();
+        Map<String, Integer> inDegree = new LinkedHashMap<>();
+        for (String name : defMap.keySet()) {
+            dependents.put(name, new LinkedHashSet<>());
+            inDegree.put(name, 0);
+        }
+
+        for (BeanDefinition def : definitions) {
+            if (def.isPrototype()) continue;
+            String name = def.getBeanName();
+            if (!defMap.containsKey(name)) continue;
+
+            for (Class<?> paramType : def.getConstructor().getParameterTypes()) {
+                for (BeanDefinition other : definitions) {
+                    if (other.isPrototype()) continue;
+                    String otherName = other.getBeanName();
+                    if (!otherName.equals(name) && paramType.isAssignableFrom(other.getBeanClass())
+                            && defMap.containsKey(otherName)) {
+                        if (dependents.get(otherName).add(name)) {
+                            inDegree.put(name, inDegree.get(name) + 1);
+                        }
+                    }
+                }
+            }
+
+            for (Field field : def.getInjectFields()) {
+                if (!field.isAnnotationPresent(Autowired.class)
+                        && !field.isAnnotationPresent(GlobalAutowired.class)) {
+                    continue;
+                }
+                Class<?> fieldType = field.getType();
+                for (BeanDefinition other : definitions) {
+                    if (other.isPrototype()) continue;
+                    String otherName = other.getBeanName();
+                    if (!otherName.equals(name) && fieldType.isAssignableFrom(other.getBeanClass())
+                            && defMap.containsKey(otherName)) {
+                        if (dependents.get(otherName).add(name)) {
+                            inDegree.put(name, inDegree.get(name) + 1);
+                        }
+                    }
+                }
+            }
+        }
+
+        Queue<String> queue = new LinkedList<>();
+        for (Map.Entry<String, Integer> entry : inDegree.entrySet()) {
+            if (entry.getValue() == 0) {
+                queue.add(entry.getKey());
+            }
+        }
+
+        while (!queue.isEmpty()) {
+            String beanName = queue.poll();
             BeanDefinition def = defMap.get(beanName);
-            if (def == null || def.isPrototype()) continue;
             Object instance = registry.getByName(beanName);
-            if (instance == null) continue;
-            lifecycleProcessor.invokePostConstruct(instance, def.getPostConstructMethods());
+            if (instance != null && def != null) {
+                lifecycleProcessor.invokePostConstruct(instance, def.getPostConstructMethods());
+            }
+            for (String dependent : dependents.get(beanName)) {
+                int newDegree = inDegree.get(dependent) - 1;
+                inDegree.put(dependent, newDegree);
+                if (newDegree == 0) {
+                    queue.add(dependent);
+                }
+            }
+        }
+
+        List<Map.Entry<String, Integer>> remaining = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : inDegree.entrySet()) {
+            if (entry.getValue() > 0) {
+                remaining.add(entry);
+            }
+        }
+        remaining.sort(Map.Entry.comparingByValue());
+        for (Map.Entry<String, Integer> entry : remaining) {
+            BeanDefinition def = defMap.get(entry.getKey());
+            Object instance = registry.getByName(entry.getKey());
+            if (instance != null && def != null) {
+                lifecycleProcessor.invokePostConstruct(instance, def.getPostConstructMethods());
+            }
         }
     }
 
