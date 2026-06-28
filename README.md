@@ -1,8 +1,8 @@
 # EtherosFramework — Yosemite
 
-轻量级依赖注入与钩子框架，专为 Paper 系 Minecraft 服务端插件设计，支持跨插件 Bean 共享。
+轻量级依赖注入与钩子框架，专为 Minecraft 服务端插件设计，支持跨插件 Bean 共享。
 
-## 适用范围
+## 适用范围（Yosemite版本）
 
 - **Java 17**
 - **Minecraft 1.17 – 1.20.4**
