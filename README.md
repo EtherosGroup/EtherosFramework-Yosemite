@@ -6,7 +6,7 @@
 
 - **Java 17**
 - **Minecraft 1.17 – 1.20.4**
-- **适用品牌：```Bukkit及其下游 | Folia | Velocity | BungeeCord```**
+- **适用品牌：```Bukkit及其下游 | Folia | Velocity | BungeeCord及其下游```**
 
 ## 核心能力
 
