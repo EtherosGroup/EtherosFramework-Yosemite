@@ -16,15 +16,28 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package cn.skilfully.etheros.etherosframework.utils.config.yaml.annotation;
+package cn.skilfully.etheros.etherosframework.utils.config.yaml.core;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.reflect.Field;
 
-@Target(ElementType.FIELD)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface ConfigNode {
-    String value();
+public final class FieldAccessor {
+
+    private FieldAccessor() {
+    }
+
+    public static Object getField(Field field, Object target) {
+        try {
+            return field.get(target);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException("Failed to get field " + field.getName(), e);
+        }
+    }
+
+    public static void setField(Field field, Object target, Object value) {
+        try {
+            field.set(target, value);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException("Failed to set field " + field.getName(), e);
+        }
+    }
 }

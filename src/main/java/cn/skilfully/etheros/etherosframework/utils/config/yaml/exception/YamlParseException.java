@@ -1,3 +1,5 @@
+package cn.skilfully.etheros.etherosframework.utils.config.yaml.exception;
+
 /*
  * This file is part of EtherosFramework-Yosemite, licensed under the Apache License, Version 2.0.
  *
@@ -16,15 +18,12 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package cn.skilfully.etheros.etherosframework.utils.config.yaml.annotation;
+public class YamlParseException extends RuntimeException {
+    public YamlParseException(String message) {
+        super(message);
+    }
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
-@Target(ElementType.FIELD)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface ConfigNode {
-    String value();
+    public YamlParseException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

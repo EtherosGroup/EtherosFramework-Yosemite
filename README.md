@@ -44,7 +44,7 @@ plugins {
 }
 
 dependencies {
-    implementation 'cn.skilfully.etheros:EtherosFramework-Yosemite:1.1.0'
+    implementation 'cn.skilfully.etheros:EtherosFramework-Yosemite:1.2.0'
 }
 ```
 
@@ -63,7 +63,7 @@ plugins {
 }
 
 dependencies {
-    implementation 'cn.skilfully.etheros:EtherosFramework-Yosemite:1.1.0'
+    implementation 'cn.skilfully.etheros:EtherosFramework-Yosemite:1.2.0'
 }
 ```
 
@@ -84,7 +84,7 @@ plugins {
 }
 
 dependencies {
-    compileOnly 'cn.skilfully.etheros:EtherosFramework-Yosemite:1.1.0'
+    compileOnly 'cn.skilfully.etheros:EtherosFramework-Yosemite:1.2.0'
 }
 ```
 
