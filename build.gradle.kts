@@ -6,7 +6,7 @@ plugins {
 
 group = "cn.skilfully.etheros"
 version = "1.2.0"
-description = "Etheros Framework - Yosemite (Java 17 / Minecraft 1.18\u20131.20.4)"
+description = "Etheros Framework - Yosemite (Java 17 / Minecraft 1.17\u20131.20.4)"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -25,10 +25,11 @@ dependencies {
 
     implementation("org.ow2.asm:asm:9.3")
 
-    compileOnly("org.projectlombok:lombok:1.18.36")
-    annotationProcessor("org.projectlombok:lombok:1.18.36")
-    testCompileOnly("org.projectlombok:lombok:1.18.36")
-    testAnnotationProcessor("org.projectlombok:lombok:1.18.36")
+    val lombok = "org.projectlombok:lombok:1.18.36"
+    compileOnly(lombok)
+    annotationProcessor(lombok)
+    testCompileOnly(lombok)
+    testAnnotationProcessor(lombok)
 }
 
 tasks.test {
