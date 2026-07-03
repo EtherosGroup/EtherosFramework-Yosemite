@@ -1,5 +1,5 @@
 /*
- * This file is part of EtherosFramework-Yosemite, licensed under the Apache License, Version 2.0.
+ * This file is part of EtherosFramework, licensed under the Apache License, Version 2.0.
  *
  *  Copyright (c) EtherosFramework <etheros@126.com>
  *  Copyright (c) contributors
