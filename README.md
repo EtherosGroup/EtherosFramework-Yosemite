@@ -1,5 +1,8 @@
 # EtherosFramework — Yosemite
 
+> [!WARNING]
+> 该分支已被合并到 [EtherosFramework](https://github.com/EtherosGroup/EtherosFramework) ，该仓库已经归档
+
 轻量级依赖注入、钩子与配置文件解析框架，专为 Minecraft 服务端插件设计，支持跨插件 Bean 共享。
 
 ## 适用范围（Yosemite版本）
